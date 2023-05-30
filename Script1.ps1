@@ -1,22 +1,30 @@
 $drives = Get-PhysicalDisk
 
+$report = @()
+
 foreach ($drive in $drives) {
     $driveInfo = Get-PhysicalDisk -UniqueId $drive.UniqueId
     $volumeInfo = Get-Partition -InputObject $driveInfo | Get-Volume
 
-    Write-Host "Drive $($drive.DeviceID):"
-    Write-Host "Health Status: $($driveInfo.HealthStatus)"
-    Write-Host "Operational Status: $($driveInfo.OperationalStatus)"
-    Write-Host "Size: $($driveInfo.Size) bytes"
+    $driveData = [PSCustomObject]@{
+        DriveID           = $drive.DeviceID
+        HealthStatus      = $driveInfo.HealthStatus
+        OperationalStatus = $driveInfo.OperationalStatus
+        Size              = $driveInfo.Size
+        FileSystem        = $null
+        DriveLetter       = $null
+        UsedSpace         = $null
+        FreeSpace         = $null
+    }
     
     if ($volumeInfo) {
-        Write-Host "File System: $($volumeInfo.FileSystem)"
-        Write-Host "Drive Letter: $($volumeInfo.DriveLetter)"
-        Write-Host "Used Space: $($volumeInfo.Size - $volumeInfo.SizeRemaining) bytes"
-        Write-Host "Free Space: $($volumeInfo.SizeRemaining) bytes"
-    } else {
-        Write-Host "No volume information available."
+        $driveData.FileSystem  = $volumeInfo.FileSystem
+        $driveData.DriveLetter = $volumeInfo.DriveLetter
+        $driveData.UsedSpace   = $volumeInfo.Size - $volumeInfo.SizeRemaining
+        $driveData.FreeSpace   = $volumeInfo.SizeRemaining
     }
 
-    Write-Host "------------------------"
+    $report += $driveData
 }
+
+$report | Format-Table -AutoSize
